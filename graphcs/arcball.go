@@ -1,8 +1,6 @@
 package graphics
 
-import (
-	"github.com/wdevore/SoftRenderer/smath"
-)
+import "SoftRenderer/smath"
 
 const (
 	LGNSegs = 4
@@ -93,15 +91,15 @@ func (ab *ArcBall) Mouse(mp *smath.Vector3) {
 
 // Update updates the arcball
 func (ab *ArcBall) Update() {
-	ab.vTo.Set(ab.mouseOnSphere(ab.vNow))
+	// ab.vTo.Set(ab.mouseOnSphere(ab.vNow))
 
-	if ab.dragging {
-		qDrag = ab.mapFromBallPoints(ab.vFrom, ab.vTo)
-		ab.qNow.mul(ab.qDrag, ab.qDown)
-	}
+	// if ab.dragging {
+	// 	qDrag = ab.mapFromBallPoints(ab.vFrom, ab.vTo)
+	// 	ab.qNow.mul(ab.qDrag, ab.qDown)
+	// }
 
-	ab.mapToBallPoints(ab.qDown, ab.vrFrom, ab.vrTo)
-	ab.q.Set(&ab.qNow)
+	// ab.mapToBallPoints(ab.qDown, ab.vrFrom, ab.vrTo)
+	// ab.q.Set(&ab.qNow)
 }
 
 // GetMatrix returns the ball's equivalent matrix

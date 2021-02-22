@@ -1,6 +1,7 @@
 package viewer
 
 import (
+	"SoftRenderer/api"
 	"fmt"
 	"image"
 	"image/color"
@@ -11,28 +12,9 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-const (
-	width       = 256
-	height      = 256
-	fps         = 60.0
-	framePeriod = 1.0 / fps * 1000.0
-)
-
-// IViewer is the graph viewer
-type IViewer interface {
-	// Open(IHost)
-	Open()
-	Run()
-	Close()
-	Quit()
-	Configure()
-	SetFont(fontPath string, size int)
-	// SetPixel(x, y int, c color.Color)
-}
-
-// Viewer is the GUI and shows the plots and graphs.
+// SurfaceBuffer is the GUI and shows the plots and graphs.
 // It receives commands for graphing and viewing various graphs.
-type Viewer struct {
+type SurfaceBuffer struct {
 	window   *sdl.Window
 	surface  *sdl.Surface
 	renderer *sdl.Renderer
@@ -61,9 +43,9 @@ type Viewer struct {
 	dynaTxt      *DynaText
 }
 
-// NewViewer creates a new viewer and initializes it.
-func NewViewer() IViewer {
-	v := new(Viewer)
+// NewSurfaceBuffer creates a new viewer and initializes it.
+func NewSurfaceBuffer() api.ISurface {
+	v := new(SurfaceBuffer)
 	v.opened = false
 	v.mod = 200
 	return v
@@ -71,20 +53,22 @@ func NewViewer() IViewer {
 
 // Open shows the viewer and begins event polling
 // (host deuron.IHost)
-func (v *Viewer) Open() {
+func (v *SurfaceBuffer) Open() {
 	v.initialize()
 
 	v.opened = true
 }
 
 // SetFont sets the font based on path and size.
-func (v *Viewer) SetFont(fontPath string, size int) {
-	v.nFont = NewFont(fontPath, size)
+func (v *SurfaceBuffer) SetFont(fontPath string, size int) error {
+	var err error
+	v.nFont, err = NewFont(fontPath, size)
+	return err
 }
 
 // filterEvent returns false if it handled the event. Returning false
 // prevents the event from being added to the queue.
-func (v *Viewer) filterEvent(e sdl.Event, userdata interface{}) bool {
+func (v *SurfaceBuffer) filterEvent(e sdl.Event, userdata interface{}) bool {
 	switch t := e.(type) {
 	case *sdl.QuitEvent:
 		v.running = false
@@ -130,7 +114,7 @@ func (v *Viewer) filterEvent(e sdl.Event, userdata interface{}) bool {
 
 // Run starts the polling event loop. This must run on
 // the main thread.
-func (v *Viewer) Run() {
+func (v *SurfaceBuffer) Run() {
 	// log.Println("Starting viewer polling")
 	v.running = true
 	// var simStatus = ""
@@ -146,6 +130,7 @@ func (v *Viewer) Run() {
 	c := color.RGBA{}
 	c.B = 127
 	c.A = 255
+	// rect := sdl.Rect{X: 0, Y: 0, W: 100, H: 100}
 
 	sdl.SetEventFilterFunc(v.filterEvent, nil)
 
@@ -178,6 +163,9 @@ func (v *Viewer) Run() {
 		v.texture.Update(nil, v.pixels.Pix, v.pixels.Stride)
 		v.renderer.Copy(v.texture, nil, nil)
 
+		// v.renderer.SetDrawColor(255, 127, 127, 255)
+		// v.renderer.FillRect(&rect)
+
 		v.txtFPSLabel.DrawAt(10, 10)
 		f := fmt.Sprintf("%2.2f", 1.0/elapsedTime*1000.0)
 		v.dynaTxt.DrawAt(v.txtFPSLabel.Bounds.W+10, 10, f)
@@ -209,19 +197,23 @@ func (v *Viewer) Run() {
 }
 
 // Quit stops the gui from running, effectively shutting it down.
-func (v *Viewer) Quit() {
+func (v *SurfaceBuffer) Quit() {
 	v.running = false
 }
 
 // Close closes the viewer.
 // Be sure to setup a "defer x.Close()"
-func (v *Viewer) Close() {
+func (v *SurfaceBuffer) Close() {
 	if !v.opened {
 		return
 	}
 	var err error
 
+	if v.nFont == nil {
+		return
+	}
 	v.nFont.Destroy()
+
 	v.txtFPSLabel.Destroy()
 	v.txtMousePos.Destroy()
 	v.dynaTxt.Destroy()
@@ -251,7 +243,7 @@ func (v *Viewer) Close() {
 	}
 }
 
-func (v *Viewer) initialize() {
+func (v *SurfaceBuffer) initialize() {
 	var err error
 
 	err = sdl.Init(sdl.INIT_TIMER | sdl.INIT_VIDEO | sdl.INIT_EVENTS)
@@ -259,7 +251,7 @@ func (v *Viewer) initialize() {
 		panic(err)
 	}
 
-	v.window, err = sdl.CreateWindow("Soft renderer", 100, 100,
+	v.window, err = sdl.CreateWindow("Soft renderer", windowPosX, windowPosY,
 		width, height, sdl.WINDOW_SHOWN)
 
 	if err != nil {
@@ -288,7 +280,7 @@ func (v *Viewer) initialize() {
 }
 
 // Configure view with draw objects
-func (v *Viewer) Configure() {
+func (v *SurfaceBuffer) Configure() {
 	// rect := sdl.Rect{X: 0, Y: 0, W: 200, H: 200}
 	// v.renderer.SetDrawColor(255, 127, 0, 255)
 	// v.renderer.FillRect(&rect)
@@ -324,8 +316,18 @@ func (v *Viewer) Configure() {
 	v.dynaTxt = NewDynaText(v.nFont, v.renderer, sdl.Color{R: 255, G: 255, B: 255, A: 255})
 }
 
-func (v *Viewer) clearDisplay() {
-	// v.renderer.SetDrawColor(127, 127, 127, 255)
-	// v.renderer.Clear()
-	// v.window.UpdateSurface()
+func (v *SurfaceBuffer) clearDisplay() {
+	v.renderer.SetDrawColor(255, 127, 127, 255)
+	v.renderer.Clear()
+	v.window.UpdateSurface()
+}
+
+// SetDrawColor --
+func (v *SurfaceBuffer) SetDrawColor(color sdl.Color) {
+	v.renderer.SetDrawColor(color.R, color.G, color.B, color.A)
+}
+
+// SetPixel --
+func (v *SurfaceBuffer) SetPixel(x, y int) {
+
 }

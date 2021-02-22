@@ -11,12 +11,17 @@ type Font struct {
 
 // NewFont creates a Font object:
 // Ex NewFont("neuropol x rg.ttf", 16)
-func NewFont(fontPath string, size int) *Font {
+func NewFont(fontPath string, size int) (*Font, error) {
 	f := new(Font)
 	f.fontPath = fontPath
 	f.size = size
-	f.initialize()
-	return f
+
+	err := f.initialize()
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 // Initialize sets up font based on fontPath
