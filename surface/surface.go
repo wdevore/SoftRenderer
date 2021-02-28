@@ -1,8 +1,8 @@
-package viewer
+package surface
 
 const (
 	// SurfaceScale scales the view
-	SurfaceScale = 5
+	SurfaceScale = 2
 	width        = 320 * SurfaceScale
 	height       = 240 * SurfaceScale
 	windowPosX   = 1024

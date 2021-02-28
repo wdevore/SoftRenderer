@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"SoftRenderer/api"
+	"image/color"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -38,7 +39,7 @@ func NewBresenHamRasterizer() api.IRasterizer {
 	return o
 }
 
-func (r *bresenhamLineRasterizer) DrawLineAmmeraal(surface api.ISurface, direction bool, xP, yP, xQ, yQ int) {
+func (r *bresenhamLineRasterizer) DrawLineAmmeraal(buffer api.IRasterBuffer, direction bool, xP, yP, xQ, yQ int) {
 	// P -> Q or Q -> P
 	if direction {
 		tx := xP
@@ -78,8 +79,8 @@ func (r *bresenhamLineRasterizer) DrawLineAmmeraal(surface api.ISurface, directi
 
 		col := uint8(0)
 		for true {
-			surface.SetDrawColor(sdl.Color{R: 0, G: 0, B: col, A: 255})
-			surface.SetPixel(x, y)
+			buffer.SetPixelColor(color.RGBA{R: 0, G: 0, B: col, A: 255})
+			buffer.SetPixel(x, y, 0.0)
 			col += 2
 
 			if x == xQ {
@@ -103,8 +104,8 @@ func (r *bresenhamLineRasterizer) DrawLineAmmeraal(surface api.ISurface, directi
 
 		col := uint8(0)
 		for true {
-			surface.SetDrawColor(sdl.Color{R: col, G: 0, B: 0, A: 255})
-			surface.SetPixel(x, y)
+			buffer.SetPixelColor(color.RGBA{R: col, G: 0, B: 0, A: 255})
+			buffer.SetPixel(x, y, 0.0)
 			col += 2
 
 			if y == yQ {
@@ -472,6 +473,9 @@ func (r *bresenhamLineRasterizer) RenderTriangle(surface api.ISurface, x1, y1, x
 	// so x1,y1 is the topmost (max y) vertex
 	r.Sort(&x1, &y1, &x2, &y2, &x3, &y3)
 
+	// Now y1 <= y2 <= y3
+	// With this knowledge we can now rasterize using edges
+
 	if y2 == y3 {
 		// Case for flat-bottom triangle
 		surface.SetDrawColor(sdl.Color{R: 255, G: 127, B: 0, A: 255})
@@ -563,110 +567,3 @@ func (r *bresenhamLineRasterizer) Sort(x1, y1, x2, y2, x3, y3 *int) {
 
 	// fmt.Println("After: ", *x1, *y1, *x2, *y2, *x3, *y3)
 }
-
-/*
-B ------------------------------------
-100 100
-101 100
-102 100
-103 99
-104 99
-105 99
-106 99
-107 98
-108 98
-109 98
-110 98
-111 97
-112 97
-113 97
-114 97
-115 96
-116 96
-117 96
-118 96
-119 95
-120 95
-121 95
-122 95
-123 94
-124 94
-125 94
-126 94
-127 93
-128 93
-129 93
-130 93
-131 92
-132 92
-133 92
-134 92
-135 91
-136 91
-137 91
-138 91
-139 90
-140 90
-141 90
-142 90
-143 89
-144 89
-145 89
-146 89
-147 88
-148 88
-149 88
-150 88
-151 87
-152 87
-153 87
-154 87
-155 86
-156 86
-157 86
-158 86
-159 85
-160 85
-161 85
-162 85
-163 84
-164 84
-165 84
-166 84
-167 83
-168 83
-169 83
-170 83
-171 82
-172 82
-173 82
-174 82
-175 81
-176 81
-177 81
-178 81
-179 80
-180 80
-181 80
-182 80
-183 79
-184 79
-185 79
-186 79
-187 78
-188 78
-189 78
-190 78
-191 77
-192 77
-193 77
-194 77
-195 76
-196 76
-197 76
-198 76
-199 75
-200 75
-E ------------------------------------
-
-*/

@@ -4,7 +4,7 @@ package api
 type IRasterizer interface {
 	DrawLine(surface ISurface, x1, y1, x2, y2 int)
 
-	DrawLineAmmeraal(surface ISurface, direction bool, x1, y1, x2, y2 int)
+	DrawLineAmmeraal(buffer IRasterBuffer, direction bool, x1, y1, x2, y2 int)
 
 	DrawLineAmmeraalDxGtDy(surface ISurface, up bool, x1, y1, x2, y2 int)
 	DrawLineAmmeraalDyGtDx(surface ISurface, up bool, x1, y1, x2, y2 int)

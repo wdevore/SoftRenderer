@@ -1,14 +1,13 @@
 package main
 
-import "SoftRenderer/viewer"
+import "SoftRenderer/surface"
 
 func main() {
-	surface := viewer.NewRendererSurface()
+	surface := surface.NewSurfaceBuffer()
 	defer surface.Close()
 
 	surface.Open()
 
-	// err := gview.SetFont("../../assets/galacticstormexpand.ttf", 16)
 	err := surface.SetFont("../../assets/MontserratAlternates-Light.otf", 16)
 
 	if err != nil {

@@ -1,60 +1,92 @@
 package renderer
 
+import (
+	"SoftRenderer/api"
+	"image"
+	"image/color"
+)
+
 // RasterBuffer provides a memory mapped RGBA and Z buffer
 // This buffer must be blitted to another buffer, for example,
 // PNG or display buffer (like SDL).
 type RasterBuffer struct {
-	colorBuf [][]RGBA
-	zBuf     [][]float32
+	width  int
+	height int
 
-	width      int
-	height     int
-	ClearDepth float32
-	ClearColor RGBA
+	// Image pixels
+	pixels *image.RGBA
+	bounds image.Rectangle
 
-	PixelColor RGBA
+	// ZBuffer
+	ClearDepth    float32
+	zBuf          [][]float32
+	alphaBlending bool
+
+	// Pen colors
+	ClearColor color.RGBA
+	PixelColor color.RGBA
 }
 
 // NewRasterBuffer creates a display buffer
-func NewRasterBuffer(width, height int) *RasterBuffer {
-	db := new(RasterBuffer)
-	db.width = width
-	db.height = height
+func NewRasterBuffer(width, height int) api.IRasterBuffer {
+	o := new(RasterBuffer)
+	o.width = width
+	o.height = height
 
-	db.ClearDepth = -100000000.0 // Default value
-	db.ClearColor.R = 127
-	db.ClearColor.G = 127
-	db.ClearColor.B = 127
-	db.ClearColor.A = 255
+	o.alphaBlending = false
 
-	db.colorBuf = make([][]RGBA, width)
-	for i := range db.colorBuf {
-		db.colorBuf[i] = make([]RGBA, height)
+	o.bounds = image.Rect(0, 0, width, height)
+	o.pixels = image.NewRGBA(o.bounds)
+
+	o.ClearColor.R = 127
+	o.ClearColor.G = 127
+	o.ClearColor.B = 127
+	o.ClearColor.A = 255
+
+	o.ClearDepth = -100000000.0 // Default value
+	o.zBuf = make([][]float32, width)
+	for i := range o.zBuf {
+		o.zBuf[i] = make([]float32, height)
 	}
-	db.zBuf = make([][]float32, width)
-	for i := range db.zBuf {
-		db.zBuf[i] = make([]float32, height)
-	}
-	return db
+
+	return o
 }
 
-// Clear clears only the color buffer
+// EnableAlphaBlending turns on/off per pixel alpha blending
+func (rb *RasterBuffer) EnableAlphaBlending(enable bool) {
+	rb.alphaBlending = enable
+}
+
+// Pixels returns underlying color buffer
+func (rb *RasterBuffer) Pixels() *image.RGBA {
+	return rb.pixels
+}
+
+// Clear clears both color and depth buffers
 func (rb *RasterBuffer) Clear() {
-	for i := range rb.colorBuf {
-		for j := 0; j < rb.height; j++ {
-			rb.colorBuf[i][j].R = rb.ClearColor.R
-			rb.colorBuf[i][j].G = rb.ClearColor.G
-			rb.colorBuf[i][j].B = rb.ClearColor.B
-			rb.colorBuf[i][j].A = rb.ClearColor.A
+	for y := 0; y < rb.height; y++ {
+		for x := 0; x < rb.width; x++ {
+			rb.pixels.SetRGBA(x, y, rb.ClearColor)
+			rb.zBuf[x][y] = rb.ClearDepth
 		}
 	}
 }
 
-// ClearZs sets the z buffer to ClearDepth
-func (rb *RasterBuffer) ClearZs() {
-	for i := range rb.colorBuf {
-		for j := 0; j < rb.height; j++ {
-			rb.zBuf[i][j] = rb.ClearDepth
+// ClearColorBuffer clears only the color/pixel buffer
+func (rb *RasterBuffer) ClearColorBuffer() {
+	/// TODO use image/draw to clear using a SRC
+	for y := 0; y < rb.height; y++ {
+		for x := 0; x < rb.width; x++ {
+			rb.pixels.SetRGBA(x, y, rb.ClearColor)
+		}
+	}
+}
+
+// ClearDepthBuffer sets the z buffer to ClearDepth
+func (rb *RasterBuffer) ClearDepthBuffer() {
+	for y := 0; y < rb.height; y++ {
+		for x := 0; x < rb.width; x++ {
+			rb.zBuf[x][y] = rb.ClearDepth
 		}
 	}
 }
@@ -82,7 +114,22 @@ func (rb *RasterBuffer) SetPixel(x, y int, z float32) int {
 		// pixel closer (i.e. on top and visible)
 		//////////////////////////////////
 		rb.zBuf[x][y] = z
-		rb.colorBuf[x][y] = rb.PixelColor
+
+		// https://en.wikipedia.org/wiki/Alpha_compositing Alpha blending section
+		// Non premultiplied alpha
+		if rb.alphaBlending {
+			dst := rb.pixels.RGBAAt(x, y)
+			src := rb.PixelColor
+			A := float32(src.A) / 255.0
+			dst.R = uint8(float32(src.R)*A + float32(dst.R)*(1.0-A))
+			dst.G = uint8(float32(src.G)*A + float32(dst.G)*(1.0-A))
+			dst.B = uint8(float32(src.B)*A + float32(dst.B)*(1.0-A))
+			dst.A = 255
+			rb.pixels.SetRGBA(x, y, dst)
+		} else {
+			rb.pixels.SetRGBA(x, y, rb.PixelColor)
+		}
+
 		return 1
 	} else {
 		//////////////////////////////////
@@ -94,12 +141,12 @@ func (rb *RasterBuffer) SetPixel(x, y int, z float32) int {
 
 // SetPixelColor set the current pixel color and sets the pixel
 // using SetPixel()
-func (rb *RasterBuffer) SetPixelColor(x, y int, z float32, color RGBA) int {
-	rb.PixelColor = color
-	return rb.SetPixel(x, y, z)
+func (rb *RasterBuffer) SetPixelColor(c color.RGBA) {
+	rb.PixelColor = c
 }
 
-func (rb *RasterBuffer) drawLine(xP, yP, xQ, yQ int, zP, zQ float32, color RGBA) {
+// DrawLine draws a line into the buffer
+func (rb *RasterBuffer) DrawLine(xP, yP, xQ, yQ int, zP, zQ float32) {
 	if xP < 0 || xP > rb.width-1 || xQ < 0 || xQ > rb.width-1 {
 		return
 	}
@@ -138,13 +185,7 @@ func (rb *RasterBuffer) drawLine(xP, yP, xQ, yQ int, zP, zQ float32, color RGBA)
 		c := 2 * HX
 		M := 2 * HY
 		for {
-			if x > rb.width || y > rb.height {
-				break // pixel off screen
-			}
-			zstatus := rb.SetPixel(x, y, z)
-			if zstatus == 1 {
-				rb.colorBuf[x][y] = rb.PixelColor
-			}
+			rb.SetPixel(x, y, z)
 			if x == xQ {
 				break
 			}
@@ -160,13 +201,7 @@ func (rb *RasterBuffer) drawLine(xP, yP, xQ, yQ int, zP, zQ float32, color RGBA)
 		c := 2 * HY
 		M := 2 * HX
 		for {
-			if x > rb.width || y > rb.height {
-				break // pixel off screen
-			}
-			zstatus := rb.SetPixel(x, y, z)
-			if zstatus == 1 {
-				rb.colorBuf[x][y] = rb.PixelColor
-			}
+			rb.SetPixel(x, y, z)
 			if y == yQ {
 				break
 			}
