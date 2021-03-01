@@ -2,6 +2,7 @@ package surface
 
 import (
 	"SoftRenderer/api"
+	graphics "SoftRenderer/graphcs"
 	"SoftRenderer/renderer"
 	"fmt"
 	"log"
@@ -232,7 +233,7 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	down = false
 	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x, y, x, y+100) // red
 
-	// Triangle ----------------------------------
+	// Triangle flat-bottom ----------------------------------
 	x = 200
 	y = 25
 
@@ -245,11 +246,16 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	// Make sure Y's are consitent
 	// rasterizer.Sort(&x1, &y1, &x2, &y2, &x3, &y3)
 
-	down = false
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, left, x+x1, y+y1, x+x2, y+y2) // blue horz
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x2, y+y2) // red
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
+	tri := graphics.NewTriangle()
 
+	down = false
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, left, x+x1, y+y1, x+x2, y+y2) // blue horz
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x2, y+y2) // red
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
+	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	tri.Draw(ws.rasterBuffer)
+
+	// Triangle flat-top ----------------------------------
 	x = 200
 	y = 100
 
@@ -263,12 +269,39 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	// rasterizer.Sort(&x1, &y1, &x2, &y2, &x3, &y3)
 
 	down = false
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, left, x+x1, y+y1, x+x2, y+y2) // blue horz
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x2, y+y2, x+x3, y+y3) // red
-	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
-	// c = color.RGBA{R: 255, G: 255, B: 255, A: 32}
-	// ws.rasterBuffer.SetPixelColor(c)
-	// ws.rasterBuffer.DrawLine(50, 250, 250, 50, 1, 1)
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, left, x+x1, y+y1, x+x2, y+y2) // blue horz
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x2, y+y2, x+x3, y+y3) // red
+	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
+
+	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	tri.Draw(ws.rasterBuffer)
+
+	// Triangle split top ----------------------------------
+	x = 200
+	y = 200
+
+	x1 = 25
+	y1 = 50
+	x2 = 0
+	y2 = -50
+	x3 = 50
+	y3 = 0
+	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	tri.Draw(ws.rasterBuffer)
+
+	// Triangle split bottom ----------------------------------
+	x = 300
+	y = 200
+
+	x1 = 0
+	y1 = 100
+	x2 = 50
+	y2 = 50
+	x3 = 25
+	y3 = 0
+	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	tri.Draw(ws.rasterBuffer)
+
 }
 
 // Quit stops the gui from running, effectively shutting it down.

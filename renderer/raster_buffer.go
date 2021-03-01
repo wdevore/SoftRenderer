@@ -215,3 +215,77 @@ func (rb *RasterBuffer) DrawLine(xP, yP, xQ, yQ int, zP, zQ float32) {
 		}
 	}
 }
+
+// DrawLineAmmeraal has no zbuffer support
+func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
+	x := xP
+	y := yP
+	d := 0
+
+	yInc := 1
+	xInc := 1
+	dx := xQ - xP
+	dy := yQ - yP
+
+	if dx < 0 {
+		xInc = -1
+		dx = -dx
+	}
+	if dy < 0 {
+		yInc = -1
+		dy = -dy
+	}
+
+	// --------------------------------------------------------------------
+	if dy <= dx {
+		m := dy << 1
+		c := dx << 1
+
+		if xInc < 0 {
+			dx++
+		}
+
+		col := uint8(0)
+		for true {
+			rb.SetPixelColor(color.RGBA{R: 0, G: col, B: col, A: 255})
+			rb.SetPixel(x, y, zP)
+			col += 3
+
+			if x == xQ {
+				break
+			}
+
+			x += xInc
+			d += m
+			if d >= dx {
+				y += yInc
+				d -= c
+			}
+		}
+	} else {
+		c := dy << 1
+		m := dx << 1
+
+		if yInc < 0 {
+			dy++
+		}
+
+		col := uint8(0)
+		for true {
+			rb.SetPixelColor(color.RGBA{R: col, G: 0, B: 0, A: 255})
+			rb.SetPixel(x, y, zP)
+			col += 3
+
+			if y == yQ {
+				break
+			}
+
+			y += yInc
+			d += m
+			if d >= dy {
+				x += xInc
+				d -= c
+			}
+		}
+	}
+}

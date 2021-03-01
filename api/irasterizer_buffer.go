@@ -12,5 +12,7 @@ type IRasterBuffer interface {
 	Clear()
 	SetPixel(x, y int, z float32) int
 	SetPixelColor(c color.RGBA)
+
 	DrawLine(xP, yP, xQ, yQ int, zP, zQ float32)
+	DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32)
 }
