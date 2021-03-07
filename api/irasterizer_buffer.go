@@ -15,4 +15,6 @@ type IRasterBuffer interface {
 
 	DrawLine(xP, yP, xQ, yQ int, zP, zQ float32)
 	DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32)
+
+	FillTriangleAmmeraal(leftEdge, rightEdge IEdge)
 }

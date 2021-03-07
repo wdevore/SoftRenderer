@@ -27,7 +27,13 @@ type WindowSurface struct {
 	my int32
 
 	// Debug/testing stuff
-	mod int
+	mod  int
+	dir  int
+	dir2 int
+	dir3 int
+	xx   int
+	xx2  int
+	xx3  int
 
 	running bool
 
@@ -46,6 +52,12 @@ func NewSurfaceBuffer() api.ISurface {
 	o := new(WindowSurface)
 	o.opened = false
 	o.mod = 200
+	o.xx = 50
+	o.dir = 1
+	o.xx2 = 0
+	o.dir2 = 1
+	o.xx3 = 100
+	o.dir3 = 1
 	return o
 }
 
@@ -253,7 +265,7 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x2, y+y2) // red
 	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
-	tri.Draw(ws.rasterBuffer)
+	tri.Fill(ws.rasterBuffer)
 
 	// Triangle flat-top ----------------------------------
 	x = 200
@@ -274,7 +286,7 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
 
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
-	tri.Draw(ws.rasterBuffer)
+	tri.Fill(ws.rasterBuffer)
 
 	// Triangle split top ----------------------------------
 	x = 200
@@ -287,20 +299,43 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	x3 = 50
 	y3 = 0
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
-	tri.Draw(ws.rasterBuffer)
+	tri.Fill(ws.rasterBuffer)
 
 	// Triangle split bottom ----------------------------------
-	x = 300
+	x = 350
 	y = 200
 
-	x1 = 0
-	y1 = 100
-	x2 = 50
+	if ws.xx2 < -50 {
+		ws.dir2 = 2
+	} else if ws.xx2 > 100 {
+		ws.dir2 = -2
+	}
+	ws.xx2 += ws.dir2
+	x1 = ws.xx2
+	//y1 = 100
+	if ws.xx3 < 0 {
+		ws.dir3 = 1
+	} else if ws.xx3 > 100 {
+		ws.dir3 = -1
+	}
+	ws.xx3 += ws.dir3
+	y1 = ws.xx3
+
+	if ws.xx < -50 {
+		ws.dir = 1
+	} else if ws.xx > 100 {
+		ws.dir = -1
+	}
+	ws.xx += ws.dir
+	x2 = ws.xx // 75 cause overdraw, 50 is fine
+
 	y2 = 50
 	x3 = 25
 	y3 = 0
+	// fmt.Println(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
-	tri.Draw(ws.rasterBuffer)
+	tri.Fill(ws.rasterBuffer)
 
 }
 

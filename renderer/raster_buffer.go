@@ -238,6 +238,7 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 
 	// --------------------------------------------------------------------
 	if dy <= dx {
+		// The change is Y is smaller than X
 		m := dy << 1
 		c := dx << 1
 
@@ -255,6 +256,7 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 				break
 			}
 
+			// X is the major step axis
 			x += xInc
 			d += m
 			if d >= dx {
@@ -280,12 +282,44 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 				break
 			}
 
+			// Y is the major step axis
 			y += yInc
 			d += m
 			if d >= dy {
 				x += xInc
 				d -= c
 			}
+		}
+	}
+}
+
+// FillTriangleAmmeraal --
+func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge) {
+	// Both edges should take the same amount steps, so I choose the left
+	// edge because the last pixel on the right edge may NOT be rendered if it shared
+
+	lx, ly := leftEdge.XY()
+	rx, ry := rightEdge.XY()
+
+	for x := lx; x <= rx; x++ {
+		rb.SetPixel(x, ly, 1.0)
+	}
+
+	for leftEdge.Step() {
+		lx, ly = leftEdge.XY()
+
+		for ry < ly {
+			rightEdge.Step()
+			rx, ry = rightEdge.XY()
+		}
+
+		if lx > rx {
+			t := rx
+			rx = lx
+			lx = t
+		}
+		for x := lx; x <= rx; x++ {
+			rb.SetPixel(x, ly, 1.0)
 		}
 	}
 }
