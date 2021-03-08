@@ -9,6 +9,7 @@ type Edge struct {
 
 	// Vertex indices into the ITriangle
 	xP, yP, xQ, yQ int
+	yBot           int
 	zP, zQ         float32
 
 	x, y, d            int
@@ -35,8 +36,31 @@ func (t *Edge) XY() (x, y int) {
 	return t.x, t.y
 }
 
+// YBot is the bottom most y value
+func (t *Edge) YBot() int {
+	return t.yBot
+}
+
+// Z1 --
+func (t *Edge) Z1() float32 {
+	return t.zP
+}
+
+// Z2 --
+func (t *Edge) Z2() float32 {
+	return t.zQ
+}
+
 // Set the vertices of the edge
 func (t *Edge) Set(xP, yP, xQ, yQ int, zP, zQ float32) {
+	// Note: the larger Y value is at the "bottom" or lower on the display
+	// if +Y axis is downward.
+	if yP > yQ {
+		t.yBot = yP
+	} else {
+		t.yBot = yQ
+	}
+
 	t.xP = xP
 	t.yP = yP
 	t.xQ = xQ

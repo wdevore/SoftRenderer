@@ -248,7 +248,7 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 
 		col := uint8(0)
 		for true {
-			rb.SetPixelColor(color.RGBA{R: 0, G: col, B: col, A: 255})
+			// rb.SetPixelColor(color.RGBA{R: 0, G: col, B: col, A: 255})
 			rb.SetPixel(x, y, zP)
 			col += 3
 
@@ -274,7 +274,7 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 
 		col := uint8(0)
 		for true {
-			rb.SetPixelColor(color.RGBA{R: col, G: 0, B: 0, A: 255})
+			// rb.SetPixelColor(color.RGBA{R: col, G: 0, B: 0, A: 255})
 			rb.SetPixel(x, y, zP)
 			col += 3
 
@@ -294,32 +294,54 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 }
 
 // FillTriangleAmmeraal --
-func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge) {
-	// Both edges should take the same amount steps, so I choose the left
-	// edge because the last pixel on the right edge may NOT be rendered if it shared
-
+func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge, skipLast bool) {
 	lx, ly := leftEdge.XY()
 	rx, ry := rightEdge.XY()
 
+	dy := 0
+	if lx > rx {
+		dy = -1
+	}
+
+	if skipLast && ly == leftEdge.YBot()-dy {
+		return
+	}
+
 	for x := lx; x <= rx; x++ {
-		rb.SetPixel(x, ly, 1.0)
+		rb.SetPixel(x, ly, leftEdge.Z1())
 	}
 
 	for leftEdge.Step() {
 		lx, ly = leftEdge.XY()
 
+		// For slopes where dy > dx, ry needs to "catch up" to ly
+		// because ly is changing on each step where ry isn't.
 		for ry < ly {
 			rightEdge.Step()
 			rx, ry = rightEdge.XY()
 		}
 
+		// If the "side" vertex is to the right then there isn't
+		// a line to skip.
+		dy = 0
+		if lx > rx {
+			dy = -1
+		}
+
+		if skipLast && ly == leftEdge.YBot()-dy {
+			return
+		}
+
+		// We always want to fill the scanline from left to right
 		if lx > rx {
 			t := rx
 			rx = lx
 			lx = t
 		}
+
+		// Fill scanline
 		for x := lx; x <= rx; x++ {
-			rb.SetPixel(x, ly, 1.0)
+			rb.SetPixel(x, ly, leftEdge.Z1())
 		}
 	}
 }

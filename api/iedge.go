@@ -6,4 +6,7 @@ type IEdge interface {
 	Step() bool
 
 	XY() (x, y int)
+	YBot() int
+	Z1() float32
+	Z2() float32
 }

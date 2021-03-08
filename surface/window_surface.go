@@ -5,6 +5,7 @@ import (
 	graphics "SoftRenderer/graphcs"
 	"SoftRenderer/renderer"
 	"fmt"
+	"image/color"
 	"log"
 	"math"
 	"time"
@@ -36,6 +37,8 @@ type WindowSurface struct {
 	xx3  int
 
 	running bool
+	animate bool
+	step    bool
 
 	opened bool
 
@@ -51,14 +54,88 @@ type WindowSurface struct {
 func NewSurfaceBuffer() api.ISurface {
 	o := new(WindowSurface)
 	o.opened = false
+	o.animate = true
+	o.step = false
 	o.mod = 200
-	o.xx = 50
+	o.xx = 75 // -41 //75 // x2
 	o.dir = 1
-	o.xx2 = 0
+	o.xx2 = 0 //-29 //0 // x1
 	o.dir2 = 1
-	o.xx3 = 100
+	o.xx3 = 100 //28 //100 // y1
 	o.dir3 = 1
+	//x1  -29 y1  8 x2  -41
 	return o
+}
+
+func (ws *WindowSurface) initialize() {
+	var err error
+
+	err = sdl.Init(sdl.INIT_TIMER | sdl.INIT_VIDEO | sdl.INIT_EVENTS)
+	if err != nil {
+		panic(err)
+	}
+
+	ws.window, err = sdl.CreateWindow("Soft renderer", windowPosX, windowPosY,
+		width, height, sdl.WINDOW_SHOWN)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Using GetSurface requires using window.UpdateSurface() rather than renderer.Present.
+	// ws.surface, err = ws.window.GetSurface()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// ws.renderer, err = sdl.CreateSoftwareRenderer(ws.surface)
+	// OR create renderer manually
+	ws.renderer, err = sdl.CreateRenderer(ws.window, -1, sdl.RENDERER_ACCELERATED)
+	if err != nil {
+		panic(err)
+	}
+
+	ws.texture, err = ws.renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, width, height)
+	if err != nil {
+		panic(err)
+	}
+
+	// ws.renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
+
+	ws.rasterBuffer = renderer.NewRasterBuffer(width, height)
+	// ws.rasterBuffer.EnableAlphaBlending(true)
+}
+
+// Configure view with draw objects
+func (ws *WindowSurface) Configure() {
+	ws.txtSimStatus = NewText(ws.nFont, ws.renderer)
+	err := ws.txtSimStatus.SetText("Sim Status: ", sdl.Color{R: 0, G: 0, B: 255, A: 255})
+	if err != nil {
+		ws.Close()
+		panic(err)
+	}
+
+	ws.txtFPSLabel = NewText(ws.nFont, ws.renderer)
+	err = ws.txtFPSLabel.SetText("FPS: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
+	if err != nil {
+		ws.Close()
+		panic(err)
+	}
+
+	ws.txtMousePos = NewText(ws.nFont, ws.renderer)
+	err = ws.txtMousePos.SetText("Mouse: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
+	if err != nil {
+		ws.Close()
+		panic(err)
+	}
+
+	ws.txtLoopLabel = NewText(ws.nFont, ws.renderer)
+	err = ws.txtLoopLabel.SetText("Loop: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
+	if err != nil {
+		ws.Close()
+		panic(err)
+	}
+
+	ws.dynaTxt = NewDynaText(ws.nFont, ws.renderer, sdl.Color{R: 255, G: 255, B: 255, A: 255})
 }
 
 // Open shows the viewer and begins event polling
@@ -100,9 +177,10 @@ func (ws *WindowSurface) filterEvent(e sdl.Event, userdata interface{}) bool {
 			switch t.Keysym.Scancode {
 			case sdl.SCANCODE_ESCAPE:
 				ws.running = false
-				// case 's':
-				// 	// Start sim
-				// 	// simStatus = "Starting"
+			case sdl.SCANCODE_A:
+				ws.animate = !ws.animate
+			case sdl.SCANCODE_S:
+				ws.step = true
 				// case 'o':
 				// 	// Stop sim
 				// 	// simStatus = "Stopping"
@@ -245,6 +323,8 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	down = false
 	rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x, y, x, y+100) // red
 
+	ws.rasterBuffer.SetPixelColor(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+
 	// Triangle flat-bottom ----------------------------------
 	x = 200
 	y = 25
@@ -267,9 +347,10 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
 	tri.Fill(ws.rasterBuffer)
 
+	ws.rasterBuffer.SetPixelColor(color.RGBA{R: 0, G: 255, B: 255, A: 127})
 	// Triangle flat-top ----------------------------------
 	x = 200
-	y = 100
+	y = 50
 
 	x1 = 25
 	y1 = 50
@@ -285,8 +366,10 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x2, y+y2, x+x3, y+y3) // red
 	// rasterizer.DrawLineAmmeraal(ws.rasterBuffer, down, x+x3, y+y3, x+x1, y+y1) // red
 
-	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	tri.SetWithZ(x+x1, y+y1, 2.0, x+x2, y+y2, 2.0, x+x3, y+y3, 2.0)
 	tri.Fill(ws.rasterBuffer)
+
+	ws.rasterBuffer.SetPixelColor(color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
 	// Triangle split top ----------------------------------
 	x = 200
@@ -305,38 +388,45 @@ func (ws *WindowSurface) render(rasterizer api.IRasterizer) {
 	x = 350
 	y = 200
 
-	if ws.xx2 < -50 {
-		ws.dir2 = 2
-	} else if ws.xx2 > 100 {
-		ws.dir2 = -2
+	if ws.animate || ws.step {
+		if ws.xx2 < -50 {
+			ws.dir2 = 2
+		} else if ws.xx2 > 100 {
+			ws.dir2 = -2
+		}
+		ws.xx2 += ws.dir2
 	}
-	ws.xx2 += ws.dir2
 	x1 = ws.xx2
+
 	//y1 = 100
-	if ws.xx3 < 0 {
-		ws.dir3 = 1
-	} else if ws.xx3 > 100 {
-		ws.dir3 = -1
+	if ws.animate || ws.step {
+		if ws.xx3 < 0 {
+			ws.dir3 = 1
+		} else if ws.xx3 > 100 {
+			ws.dir3 = -1
+		}
+		ws.xx3 += ws.dir3
 	}
-	ws.xx3 += ws.dir3
 	y1 = ws.xx3
 
-	if ws.xx < -50 {
-		ws.dir = 1
-	} else if ws.xx > 100 {
-		ws.dir = -1
+	if ws.animate || ws.step {
+		if ws.xx < -50 {
+			ws.dir = 1
+		} else if ws.xx > 100 {
+			ws.dir = -1
+		}
+		ws.xx += ws.dir
 	}
-	ws.xx += ws.dir
 	x2 = ws.xx // 75 cause overdraw, 50 is fine
-
+	// fmt.Println("x1 ", x1, "y1 ", y1, "x2 ", x2)
 	y2 = 50
 	x3 = 25
 	y3 = 0
 	// fmt.Println(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
+	ws.step = false
 
 	tri.Set(x+x1, y+y1, x+x2, y+y2, x+x3, y+y3)
 	tri.Fill(ws.rasterBuffer)
-
 }
 
 // Quit stops the gui from running, effectively shutting it down.
@@ -384,76 +474,6 @@ func (ws *WindowSurface) Close() {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func (ws *WindowSurface) initialize() {
-	var err error
-
-	err = sdl.Init(sdl.INIT_TIMER | sdl.INIT_VIDEO | sdl.INIT_EVENTS)
-	if err != nil {
-		panic(err)
-	}
-
-	ws.window, err = sdl.CreateWindow("Soft renderer", windowPosX, windowPosY,
-		width, height, sdl.WINDOW_SHOWN)
-
-	if err != nil {
-		panic(err)
-	}
-
-	// Using GetSurface requires using window.UpdateSurface() rather than renderer.Present.
-	// ws.surface, err = ws.window.GetSurface()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// ws.renderer, err = sdl.CreateSoftwareRenderer(ws.surface)
-	// OR create renderer manually
-	ws.renderer, err = sdl.CreateRenderer(ws.window, -1, sdl.RENDERER_ACCELERATED)
-	if err != nil {
-		panic(err)
-	}
-
-	ws.texture, err = ws.renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, width, height)
-	if err != nil {
-		panic(err)
-	}
-
-	// ws.renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
-
-	ws.rasterBuffer = renderer.NewRasterBuffer(width, height)
-}
-
-// Configure view with draw objects
-func (ws *WindowSurface) Configure() {
-	ws.txtSimStatus = NewText(ws.nFont, ws.renderer)
-	err := ws.txtSimStatus.SetText("Sim Status: ", sdl.Color{R: 0, G: 0, B: 255, A: 255})
-	if err != nil {
-		ws.Close()
-		panic(err)
-	}
-
-	ws.txtFPSLabel = NewText(ws.nFont, ws.renderer)
-	err = ws.txtFPSLabel.SetText("FPS: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
-	if err != nil {
-		ws.Close()
-		panic(err)
-	}
-
-	ws.txtMousePos = NewText(ws.nFont, ws.renderer)
-	err = ws.txtMousePos.SetText("Mouse: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
-	if err != nil {
-		ws.Close()
-		panic(err)
-	}
-
-	ws.txtLoopLabel = NewText(ws.nFont, ws.renderer)
-	err = ws.txtLoopLabel.SetText("Loop: ", sdl.Color{R: 200, G: 200, B: 200, A: 255})
-	if err != nil {
-		ws.Close()
-		panic(err)
-	}
-
-	ws.dynaTxt = NewDynaText(ws.nFont, ws.renderer, sdl.Color{R: 255, G: 255, B: 255, A: 255})
 }
 
 func (ws *WindowSurface) clearDisplay() {
