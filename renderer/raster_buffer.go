@@ -294,17 +294,18 @@ func (rb *RasterBuffer) DrawLineAmmeraal(xP, yP, xQ, yQ int, zP, zQ float32) {
 }
 
 // FillTriangleAmmeraal --
-func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge, skipLast bool) {
+func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge, skipBottom, skipRight bool) {
 	lx, ly := leftEdge.XY()
 	rx, ry := rightEdge.XY()
 
-	dy := 0
-	if lx > rx {
-		dy = -1
-	}
-
-	if skipLast && ly == leftEdge.YBot()-dy {
-		return
+	if skipBottom {
+		dy := 0
+		if lx > rx {
+			dy = -1
+		}
+		if ly == leftEdge.YBot()-dy {
+			return
+		}
 	}
 
 	for x := lx; x <= rx; x++ {
@@ -321,15 +322,16 @@ func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge, skip
 			rx, ry = rightEdge.XY()
 		}
 
-		// If the "side" vertex is to the right then there isn't
-		// a line to skip.
-		dy = 0
-		if lx > rx {
-			dy = -1
-		}
-
-		if skipLast && ly == leftEdge.YBot()-dy {
-			return
+		if skipBottom {
+			// If the "side" vertex is to the right then there isn't
+			// a line to skip.
+			dy := 0
+			if lx > rx {
+				dy = -1
+			}
+			if ly == leftEdge.YBot()-dy {
+				return
+			}
 		}
 
 		// We always want to fill the scanline from left to right
@@ -339,6 +341,11 @@ func (rb *RasterBuffer) FillTriangleAmmeraal(leftEdge, rightEdge api.IEdge, skip
 			lx = t
 		}
 
+		// The last pixel may be shared with another edge. That edge
+		// will render it. Thus the top-left rendering rule.
+		if skipRight {
+			rx--
+		}
 		// Fill scanline
 		for x := lx; x <= rx; x++ {
 			rb.SetPixel(x, ly, leftEdge.Z1())
