@@ -21,7 +21,7 @@ type Edge struct {
 	// the visibility flag is set.
 	shared bool
 
-	// Forces rendering of the edge regardless if it's shared.
+	// Forces rendering of the edge regardless if it's shared or internal
 	visible bool
 }
 

@@ -15,10 +15,10 @@ For example, navigate to the *examples/tri_raster* folder and "```go run .```"
 # Tasks
 - **working** Setup SDL shell and framework
 - Build a triangle rasterizers
-  - Line renderer
-    - **working** Port DDA from java softrenderer
-  - Single triangle
-  - Shared Edge triangles
+  - **done** Line renderer
+    - Port DDA from java softrenderer
+  - **done** Single triangle
+  - **working** Shared Edge triangles via Polygons
 
 # References
 Search term: *software triangle rasterization top left rule*

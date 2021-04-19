@@ -13,8 +13,7 @@ type Triangle struct {
 	x1, y1, x2, y2, x3, y3 int
 	z1, z2, z3             float32
 
-	// Edges used for rasterization. If the triangle is split
-	// then the edge count doubles.
+	// Edges used for rasterization.
 	leftEdge, rightEdge api.IEdge
 }
 
